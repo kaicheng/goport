@@ -1,62 +1,85 @@
 package engineio
 
 import (
-    "github.com/kaicheng/goport/engineio/parser"
-    "github.com/kaicheng/goport/events"
+	"github.com/kaicheng/goport/engineio/parser"
+	"github.com/kaicheng/goport/events"
 )
 
 type websocketTransport struct {
-    events.EventEmitter
+	events.EventEmitter
 
-    socket *Socket
-    writable bool
+	socket       *Socket
+	writable     bool
+	wsReadyState string
 }
 
-func (trans *websocketTransport)) onData(data []byte) {
-    trans.onPacket(parser.DecodePacket(data))
+func NewWebsocketTransport(req *Request) Transport {
+	return new(websocketTransport)
+}
+
+func (trans *websocketTransport) onData(data []byte) {
+	pkt := parser.DecodePacket(data)
+	trans.onPacket(&pkt)
 }
 
 func (trans *websocketTransport) send(packets []*parser.Packet) {
-    for i, pkt := range packets {
-        parser.EncodePacket(pkt, trans.supportsbinary, func(data []byte) {
-            trans.writable = false
-            trans.socket.send(data, function(err){
-                if err {
-                    trans.onError("write error", err)
-                }
-                trans.writable = true
-                trans.Emit("drain")
-            })
-        })
-    }
+	for _, pkt := range packets {
+		parser.EncodePacket(pkt, false, func(data []byte) {
+			trans.writable = false
+			/*
+				trans.socket.send(data, func(err) {
+					if err {
+						trans.onError("write error", err)
+					}
+					trans.writable = true
+					trans.Emit("drain")
+				})
+			*/
+		})
+	}
 }
 
 func (trans *websocketTransport) doClose(fn func()) {
-    trans.socket.close()
-    if fn != nil {
-        fn()
-    }
+	trans.socket.close()
+	if fn != nil {
+		fn()
+	}
 }
 
 func (trans *websocketTransport) onClose() {
-    trans.readyState = "closed"
-    trans.Emit("close")
+	trans.wsReadyState = "closed"
+	trans.Emit("close")
 }
 
 func (trans *websocketTransport) onPacket(pkt *parser.Packet) {
-    trans.Emit("packet", pkt)
+	trans.Emit("packet", pkt)
 }
 
 func (trans *websocketTransport) onError(msg, desc string) {
-    err := Error{"TransportError", msg, desc}
-    trans.Emit("error", err)
+	// err := error{"TransportError", msg, desc}
+	// trans.Emit("error", err)
 }
 
-func (trans *websocketTransport) close (fn func()) {
-    trans.readyState = "closing"
-    trans.doClose(fn)
+func (trans *websocketTransport) close(fn func()) {
+	trans.wsReadyState = "closing"
+	trans.doClose(fn)
 }
 
-func (trans *Transport) onRequest(req *Request) {
-    trans.req = req
+func (trans *websocketTransport) onRequest(req *Request) {
+	// trans.req = req
+}
+
+func (trans *websocketTransport) Name() string {
+	return "websocket"
+}
+
+func (trans *websocketTransport) readyState() string {
+	return trans.wsReadyState
+}
+
+func (trans *websocketTransport) setReadyState(state string) {
+	trans.wsReadyState = state
+}
+
+func (trans *websocketTransport) setSid(sid string) {
 }
