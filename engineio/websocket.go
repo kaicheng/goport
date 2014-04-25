@@ -9,7 +9,7 @@ type websocketTransport struct {
 	events.EventEmitter
 
 	socket       *Socket
-	writable     bool
+	wswritable   bool
 	wsReadyState string
 }
 
@@ -25,7 +25,7 @@ func (trans *websocketTransport) onData(data []byte) {
 func (trans *websocketTransport) send(packets []*parser.Packet) {
 	for _, pkt := range packets {
 		parser.EncodePacket(pkt, false, func(data []byte) {
-			trans.writable = false
+			trans.wswritable = false
 			/*
 				trans.socket.send(data, func(err) {
 					if err {
@@ -82,4 +82,14 @@ func (trans *websocketTransport) setReadyState(state string) {
 }
 
 func (trans *websocketTransport) setSid(sid string) {
+}
+
+func (trans *websocketTransport) setMaxHTTPBufferSize(size int) {
+}
+
+func (trans *websocketTransport) setSupportsBinary(b bool) {
+}
+
+func (trans *websocketTransport) writable() bool {
+	return trans.wswritable
 }
