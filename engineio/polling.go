@@ -2,6 +2,7 @@ package engineio
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/kaicheng/goport/engineio/parser"
 	"net/http"
 )
@@ -50,6 +51,7 @@ func (poll *Polling) onRequest(req *Request) {
 	case "POST":
 		poll.onDataRequest(req)
 	default:
+		debug("polling default")
 		res := req.res
 		res.WriteHeader(500)
 		res.Write(nil)
@@ -60,10 +62,12 @@ func (poll *Polling) onPollRequest(req *Request) {
 	res := req.res
 
 	if poll.req != nil {
+		debug("request overlap")
 		poll.onError("overlap from client", "")
 		res.WriteHeader(500)
 		return
 	}
+	debug("setting request")
 
 	poll.req = req
 	poll.res = res
@@ -81,6 +85,7 @@ func (poll *Polling) onPollRequest(req *Request) {
 	poll.Emit("drain")
 
 	if poll.pWritable && poll.shouldClose != nil {
+		debug("triggering empty send to append close packet")
 		poll.send([]*parser.Packet{&noopPkt})
 	}
 }
@@ -96,6 +101,7 @@ func (poll *Polling) onDataRequest(req *Request) {
 	res := req.res
 
 	if poll.dataReq != nil {
+		debug("data request overlap from client")
 		poll.onError("data request overlap from client", "")
 		res.WriteHeader(500)
 		return
@@ -119,6 +125,7 @@ func (poll *Polling) onDataRequest(req *Request) {
 	}
 
 	bag.onEnd = func() {
+		debug("data request onEnd ok")
 		poll.onData(chunks.Next(chunks.Len()))
 		res.Header().Set("Content-Length", "2")
 		res.Header().Set("Content-Type", "text/html")
@@ -143,8 +150,10 @@ func (poll *Polling) onDataRequest(req *Request) {
 }
 
 func (poll *Polling) onData(data []byte) {
+	debug(fmt.Sprintf("received \"%s\"", string(data)))
 	parser.DecodePayload(data, func(pkt parser.Packet, index, total int) {
 		if pkt.Type == "close" {
+			debug("got xhr close packet")
 			poll.onClose()
 			return
 		}
@@ -154,6 +163,7 @@ func (poll *Polling) onData(data []byte) {
 
 func (poll *Polling) send(pkts []*parser.Packet) {
 	if poll.shouldClose != nil {
+		debug("appending close packet to payload")
 		pkts = append(pkts, &parser.Packet{Type: "close"})
 		poll.shouldClose()
 		poll.shouldClose = nil
@@ -165,6 +175,7 @@ func (poll *Polling) send(pkts []*parser.Packet) {
 }
 
 func (poll *Polling) write(data []byte) {
+	debug(fmt.Sprintf("writing \"%s\"", string(data)))
 	poll.doWrite(data)
 	poll.req.cleanup()
 	poll.pWritable = false

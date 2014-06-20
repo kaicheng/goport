@@ -29,8 +29,8 @@ type Transport interface {
 type transportCreator func(*Request) Transport
 
 var transports = map[string]transportCreator{
-//	"websocket": NewWebsocketTransport,
-	"polling":   NewPollingTransport,
+	//	"websocket": NewWebsocketTransport,
+	"polling": NewPollingTransport,
 }
 
 var noopPkt = parser.Packet{Type: "noop"}
@@ -61,6 +61,7 @@ func (trans *TransportBase) readyState() string {
 }
 
 func (trans *TransportBase) onRequest(req *Request) {
+	debug("setting request")
 	trans.req = req
 }
 
