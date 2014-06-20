@@ -139,15 +139,17 @@ func (socket *Socket) Write(data []byte) {
 }
 
 func (socket *Socket) flush() {
-	if "closed" != socket.readyState && socket.Transport.writable() && len(socket.WriteBuffer) > 0 {
-		debug("flusing buffer to transport")
-		socket.Emit("flush", socket.WriteBuffer)
-		socket.server.Emit("flush", socket.WriteBuffer)
-		buf := socket.WriteBuffer
-		socket.WriteBuffer = make([]*parser.Packet, 10)[0:0]
-		socket.Transport.send(buf)
-		socket.Emit("drain")
-		socket.server.Emit("drain", socket)
+	if "closed" != socket.readyState && len(socket.WriteBuffer) > 0 {
+		socket.Transport.tryWritable(func() {
+			debug("flusing buffer to transport")
+			socket.Emit("flush", socket.WriteBuffer)
+			socket.server.Emit("flush", socket.WriteBuffer)
+			buf := socket.WriteBuffer
+			socket.WriteBuffer = make([]*parser.Packet, 10)[0:0]
+			socket.Transport.send(buf)
+			socket.Emit("drain")
+			socket.server.Emit("drain", socket)
+		}, nil)
 	}
 }
 

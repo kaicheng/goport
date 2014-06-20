@@ -10,6 +10,7 @@ type Transport interface {
 
 	setReadyState(string)
 	readyState() string
+	tryWritable(do, def func())
 
 	onRequest(*Request)
 	close(func())
@@ -23,7 +24,6 @@ type Transport interface {
 	setSid(sid string)
 	setMaxHTTPBufferSize(size int)
 	setSupportsBinary(b bool)
-	writable() bool
 }
 
 type transportCreator func(*Request) Transport

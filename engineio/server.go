@@ -45,6 +45,7 @@ type Request struct {
 var gi = 0
 
 func generateId() string {
+	// FIXME: Need lock
 	gi++
 	return fmt.Sprintf("%d", gi)
 }
